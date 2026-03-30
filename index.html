@@ -602,7 +602,7 @@
                         <div class="avatar" id="header-avatar" style="width: 42px; height: 42px;">?</div>
                         <div>
                             <div id="header-name" style="font-weight: 600; font-size: 1rem;">Sohbet</div>
-                            <div style="font-size: 0.75rem; color: #00ff88;">Şu an aktif</div>
+                            <div id="conn-status" style="font-size: 0.75rem; color: #00ff88;">Bağlanıyor...</div>
                         </div>
                     </div>
                 </header>
@@ -750,6 +750,13 @@
                 resetButton();
                 switchChat(conn.peer);
                 if (window.innerWidth <= 768) toggleSidebar(false);
+
+                // Update status indicator
+                const statusEl = document.getElementById('conn-status');
+                if (statusEl) {
+                    statusEl.style.color = '#00ff88';
+                    statusEl.innerText = 'Bağlı ✔';
+                }
                 
                 // Success toast
                 const toast = document.getElementById('toast');
@@ -852,16 +859,10 @@
 
         function send() {
             const text = msgInput.value.trim();
-
-            if (!text) return; // Empty message, ignore silently
+            if (!text) return;
 
             if (!activeConn) {
-                alert('Henüz kimseyle bağlantı kurulmadı!');
-                return;
-            }
-
-            if (!activeConn.open) {
-                alert('Bağlantı aktif değil. Lütfen sayfayı yenileyin ve tekrar bağlanın.');
+                alert('Henüz bağlantı kurulmadı!');
                 return;
             }
 
@@ -876,7 +877,7 @@
                 msgInput.focus();
             } catch(e) {
                 console.error('Mesaj gönderilemedi:', e);
-                alert('Mesaj gönderilemedi: ' + e.message);
+                alert('Mesaj gönderilemedi. Bağlantı durumu: ' + (activeConn ? 'var (open=' + activeConn.open + ')' : 'yok') + '. Hata: ' + e.message);
             }
         }
 
