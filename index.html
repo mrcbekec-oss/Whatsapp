@@ -211,6 +211,13 @@
             box-shadow: 0 8px 20px rgba(0, 168, 132, 0.3);
         }
 
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .btn:active { transform: translateY(0); }
 
         .contact-list {
@@ -431,8 +438,18 @@
 
         @media (max-width: 768px) {
             .app-container { height: 100vh; border-radius: 0; }
-            .sidebar { position: absolute; left: 0; top: 0; height: 100%; z-index: 100; width: 100%; transform: translateX(-100%); }
+            .sidebar { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                height: 100%; 
+                z-index: 100; 
+                width: 100%; 
+                transform: translateX(-100%);
+                box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+            }
             .sidebar.show { transform: translateX(0); }
+            .connection-form { padding-bottom: 40px; } /* Extra space for keyboard */
         }
     </style>
 </head>
@@ -471,9 +488,9 @@
                 <div class="input-group">
                     <input type="text" id="target-peer-id" class="input-field" placeholder="Arkadaşının ID'sini gir...">
                 </div>
-                <button class="btn" onclick="connect()">
+                <button class="btn" id="connect-btn" onclick="connect()" disabled>
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21 3L3 10.53V11.51L9.81 14.19L18.65 6.43L10.01 15.34L10.15 15.4L18.8 20.67L19.8 19.82L21 3Z"/></svg>
-                    Bağlantı Kur
+                    <span>ID Bekleniyor...</span>
                 </button>
             </div>
 
@@ -543,11 +560,17 @@
             peer = savedId ? new Peer(savedId) : new Peer();
 
             peer.on('open', (id) => {
+                console.log('My peer ID is: ' + id);
                 // Save the ID if it's new
                 if (!savedId) {
                     localStorage.setItem('whatsapp-p2p-id', id);
                 }
                 myIdValue.innerText = id;
+                
+                // Enable connect button
+                const connBtn = document.getElementById('connect-btn');
+                connBtn.disabled = false;
+                connBtn.querySelector('span').innerText = 'Bağlantı Kur';
             });
 
             peer.on('connection', (conn) => {
@@ -555,15 +578,20 @@
             });
 
             peer.on('error', (err) => {
-                console.error(err);
+                console.error('Peer Error:', err);
                 if(err.type === 'peer-not-found') {
-                    alert('Böyle bir ID bulunamadı.');
+                    alert('Hata: Böyle bir ID bulunamadı. Arkadaşınızın ID\'sini doğru girdiğinizden emin olun.');
                     resetButton();
                 } else if(err.type === 'unavailable-id') {
-                    // If the ID is somehow taken or invalid, fallback to a new one
                     console.log('ID unavailable, generating new one...');
                     localStorage.removeItem('whatsapp-p2p-id');
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
+                } else if(err.type === 'network') {
+                    alert('Ağ hatası! İnternet bağlantınızı kontrol edin.');
+                    resetButton();
+                } else {
+                    alert('Beklenmedik bir hata oluştu: ' + err.type);
+                    resetButton();
                 }
             });
 
@@ -619,36 +647,54 @@
 
         function connect() {
             const destId = document.getElementById('target-peer-id').value.trim();
-            if(!destId) return;
+            if(!destId) {
+                alert('Lütfen bir ID girin.');
+                return;
+            }
             
+            if (!peer || !peer.open) {
+                alert('Sistem henüz hazır değil, lütfen bekleyin...');
+                return;
+            }
+
             const myId = myIdValue.innerText;
             if (destId === myId) {
-                alert('Kendi ID\'ne bağlanamazsın!');
+                alert('Kendi ID\'nize bağlanamazsınız!');
                 return;
             }
 
             // Show loading state
-            const btn = document.querySelector('.connection-form .btn');
-            btn.innerText = 'Bağlanıyor...';
+            const btn = document.getElementById('connect-btn');
+            const span = btn.querySelector('span');
+            span.innerText = 'Bağlanıyor...';
             btn.disabled = true;
 
-            const conn = peer.connect(destId);
-            setupConnection(conn);
-            addContact(destId);
+            try {
+                console.log('Connecting to:', destId);
+                const conn = peer.connect(destId);
+                setupConnection(conn);
+                addContact(destId);
 
-            // Timeout for connection
-            setTimeout(() => {
-                if (activeConn && !activeConn.open) {
-                    alert('Bağlantı zaman aşımına uğradı. ID\'nin doğru olduğundan ve arkadaşının çevrimiçi olduğundan emin ol.');
-                    resetButton();
-                }
-            }, 10000);
+                // Timeout for connection
+                setTimeout(() => {
+                    if (activeConn && !activeConn.open) {
+                        alert('Bağlantı zaman aşımına uğradı. Arkadaşınızın ID\'si yanlış olabilir veya arkadaşınız çevrimdışı olabilir.');
+                        resetButton();
+                    }
+                }, 12000);
+            } catch (err) {
+                console.error('Connect Error:', err);
+                alert('Bağlantı başlatılamadı: ' + err.message);
+                resetButton();
+            }
         }
 
         function resetButton() {
-            const btn = document.querySelector('.connection-form .btn');
-            btn.innerText = 'Bağlantı Kur';
-            btn.disabled = false;
+            const btn = document.getElementById('connect-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.querySelector('span').innerText = 'Bağlantı Kur';
+            }
         }
 
         function send() {
@@ -708,11 +754,44 @@
 
         function copyId() {
             const id = myIdValue.innerText;
-            navigator.clipboard.writeText(id).then(() => {
-                const toast = document.getElementById('toast');
+            if (id === 'Oluşturuluyor...') return;
+
+            const toast = document.getElementById('toast');
+            
+            const doToast = (msg) => {
+                toast.innerText = msg;
                 toast.classList.add('show');
                 setTimeout(() => toast.classList.remove('show'), 2500);
-            });
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(id).then(() => {
+                    doToast('ID Kopyalandı!');
+                }).catch(err => {
+                    fallbackCopyId(id, doToast);
+                });
+            } else {
+                fallbackCopyId(id, doToast);
+            }
+        }
+
+        function fallbackCopyId(text, callback) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                callback('ID Kopyalandı!');
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+                callback('Kopyalama Başarısız!');
+            }
+            document.body.removeChild(textArea);
         }
 
         msgInput.onkeypress = (e) => { if(e.key === 'Enter') send(); };
