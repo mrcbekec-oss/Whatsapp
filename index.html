@@ -536,20 +536,35 @@
 
         // Initialize Peer
         function init() {
-            peer = new Peer();
+            // Check for saved ID in localStorage
+            const savedId = localStorage.getItem('whatsapp-p2p-id');
+            
+            // If we have a saved ID, use it. Otherwise, let PeerJS generate one.
+            peer = savedId ? new Peer(savedId) : new Peer();
 
             peer.on('open', (id) => {
+                // Save the ID if it's new
+                if (!savedId) {
+                    localStorage.setItem('whatsapp-p2p-id', id);
+                }
                 myIdValue.innerText = id;
             });
 
             peer.on('connection', (conn) => {
-                setupConnection(conn);
-                addContact(conn.peer);
+                handleConnection(conn);
             });
 
             peer.on('error', (err) => {
                 console.error(err);
-                if(err.type === 'peer-not-found') alert('Böyle bir ID bulunamadı.');
+                if(err.type === 'peer-not-found') {
+                    alert('Böyle bir ID bulunamadı.');
+                    resetButton();
+                } else if(err.type === 'unavailable-id') {
+                    // If the ID is somehow taken or invalid, fallback to a new one
+                    console.log('ID unavailable, generating new one...');
+                    localStorage.removeItem('whatsapp-p2p-id');
+                    location.reload();
+                }
             });
 
             // Handle mobile initial state
@@ -557,6 +572,11 @@
                 toggleSidebar(true);
                 mobileBack.style.display = 'block';
             }
+        }
+
+        function handleConnection(conn) {
+            setupConnection(conn);
+            addContact(conn.peer);
         }
 
         function setupConnection(conn) {
