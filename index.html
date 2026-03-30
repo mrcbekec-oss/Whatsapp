@@ -563,12 +563,24 @@
             activeConn = conn;
             
             conn.on('open', () => {
+                console.log('Bağlantı başarıyla açıldı!');
+                // Reset button state
+                const btn = document.querySelector('.connection-form .btn');
+                btn.innerText = 'Bağlantı Kur';
+                btn.disabled = false;
+
                 switchChat(conn.peer);
                 if (window.innerWidth <= 768) toggleSidebar(false);
             });
 
             conn.on('data', (data) => {
                 appendMessage(data, 'received');
+            });
+
+            conn.on('error', (err) => {
+                alert('Bağlantı Hatası: ' + err);
+                console.error('Conn error:', err);
+                resetButton();
             });
 
             conn.on('close', () => {
@@ -589,9 +601,34 @@
             const destId = document.getElementById('target-peer-id').value.trim();
             if(!destId) return;
             
+            const myId = myIdValue.innerText;
+            if (destId === myId) {
+                alert('Kendi ID\'ne bağlanamazsın!');
+                return;
+            }
+
+            // Show loading state
+            const btn = document.querySelector('.connection-form .btn');
+            btn.innerText = 'Bağlanıyor...';
+            btn.disabled = true;
+
             const conn = peer.connect(destId);
             setupConnection(conn);
             addContact(destId);
+
+            // Timeout for connection
+            setTimeout(() => {
+                if (activeConn && !activeConn.open) {
+                    alert('Bağlantı zaman aşımına uğradı. ID\'nin doğru olduğundan ve arkadaşının çevrimiçi olduğundan emin ol.');
+                    resetButton();
+                }
+            }, 10000);
+        }
+
+        function resetButton() {
+            const btn = document.querySelector('.connection-form .btn');
+            btn.innerText = 'Bağlantı Kur';
+            btn.disabled = false;
         }
 
         function send() {
