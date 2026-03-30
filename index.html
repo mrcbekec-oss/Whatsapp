@@ -497,6 +497,9 @@
             <div id="active-chat-state" style="display: none; height: 100%; flex-direction: column;">
                 <header class="chat-header">
                     <div style="display: flex; align-items: center; gap: 15px;">
+                        <button class="btn" id="mobile-back" style="display: none; background: transparent; padding: 5px; box-shadow: none;" onclick="toggleSidebar(true)">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                        </button>
                         <div class="avatar" id="header-avatar" style="width: 42px; height: 42px;">?</div>
                         <div>
                             <div id="header-name" style="font-weight: 600; font-size: 1rem;">Sohbet</div>
@@ -524,10 +527,12 @@
     <script>
         let peer;
         let activeConn = null;
+        const sidebar = document.getElementById('sidebar');
         const messagesEl = document.getElementById('messages');
         const msgInput = document.getElementById('msg-input');
         const myIdValue = document.getElementById('my-id');
         const contactList = document.getElementById('contact-list');
+        const mobileBack = document.getElementById('mobile-back');
 
         // Initialize Peer
         function init() {
@@ -546,6 +551,12 @@
                 console.error(err);
                 if(err.type === 'peer-not-found') alert('Böyle bir ID bulunamadı.');
             });
+
+            // Handle mobile initial state
+            if (window.innerWidth <= 768) {
+                toggleSidebar(true);
+                mobileBack.style.display = 'block';
+            }
         }
 
         function setupConnection(conn) {
@@ -553,6 +564,7 @@
             
             conn.on('open', () => {
                 switchChat(conn.peer);
+                if (window.innerWidth <= 768) toggleSidebar(false);
             });
 
             conn.on('data', (data) => {
@@ -563,6 +575,14 @@
                 alert('Bağlantı koptu.');
                 location.reload();
             });
+        }
+
+        function toggleSidebar(show) {
+            if (show) {
+                sidebar.classList.add('show');
+            } else {
+                sidebar.classList.remove('show');
+            }
         }
 
         function connect() {
