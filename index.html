@@ -610,16 +610,25 @@
         function setupConnection(conn) {
             activeConn = conn;
             
-            conn.on('open', () => {
-                console.log('Bağlantı başarıyla açıldı!');
-                // Reset button state
-                const btn = document.querySelector('.connection-form .btn');
-                btn.innerText = 'Bağlantı Kur';
-                btn.disabled = false;
-
+            const onOpen = () => {
+                console.log('Bağlantı başarıyla açıldı! Peer:', conn.peer);
+                resetButton();
                 switchChat(conn.peer);
                 if (window.innerWidth <= 768) toggleSidebar(false);
-            });
+                
+                // Success toast
+                const toast = document.getElementById('toast');
+                toast.innerText = 'Bağlantı Kuruldu! Sohbet Başlıyor...';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            };
+
+            // PeerJS connections might be open already on the receiving side
+            if (conn.open) {
+                onOpen();
+            } else {
+                conn.on('open', onOpen);
+            }
 
             conn.on('data', (data) => {
                 appendMessage(data, 'received');
@@ -632,8 +641,13 @@
             });
 
             conn.on('close', () => {
-                alert('Bağlantı koptu.');
-                location.reload();
+                console.log('Bağlantı kapandı.');
+                // Don't reload immediately on mobile to allow user to see what happened
+                const toast = document.getElementById('toast');
+                toast.innerText = 'Bağlantı Koptu.';
+                toast.style.background = '#e74c3c';
+                toast.classList.add('show');
+                setTimeout(() => location.reload(), 3000);
             });
         }
 
