@@ -600,6 +600,42 @@
                 toggleSidebar(true);
                 mobileBack.style.display = 'block';
             }
+
+            // Load persistent contacts
+            loadPreviousContacts();
+        }
+
+        // Storage helpers
+        function getChats() {
+            const chats = localStorage.getItem('whatsapp_p2p_chats');
+            return chats ? JSON.parse(chats) : {};
+        }
+
+        function saveChats(chats) {
+            localStorage.setItem('whatsapp_p2p_chats', JSON.stringify(chats));
+        }
+
+        function saveMessage(peerId, text, type, time) {
+            const chats = getChats();
+            if (!chats[peerId]) chats[peerId] = [];
+            chats[peerId].push({ text, type, time });
+            saveChats(chats);
+            updateContactPreview(peerId, text, time);
+        }
+
+        function loadPreviousContacts() {
+            const chats = getChats();
+            const sortedIds = Object.keys(chats).sort((a, b) => {
+                const logsA = chats[a];
+                const logsB = chats[b];
+                return 0; // Simple sort for now
+            });
+
+            sortedIds.forEach(id => {
+                const history = chats[id];
+                const lastMsg = history[history.length - 1];
+                addContact(id, lastMsg.text, lastMsg.time);
+            });
         }
 
         function handleConnection(conn) {
@@ -631,7 +667,11 @@
             }
 
             conn.on('data', (data) => {
-                appendMessage(data, 'received');
+                const now = new Date();
+                const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                
+                appendMessage(data, 'received', time);
+                saveMessage(conn.peer, data, 'received', time);
             });
 
             conn.on('error', (err) => {
@@ -715,18 +755,20 @@
             const text = msgInput.value.trim();
             if(!text || !activeConn) return;
 
+            const now = new Date();
+            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
             activeConn.send(text);
-            appendMessage(text, 'sent');
+            appendMessage(text, 'sent', time);
+            saveMessage(activeConn.peer, text, 'sent', time);
+            
             msgInput.value = '';
             msgInput.focus();
         }
 
-        function appendMessage(text, type) {
+        function appendMessage(text, type, time) {
             const div = document.createElement('div');
             div.className = `message-bubble message-${type}`;
-            
-            const now = new Date();
-            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
             
             div.innerHTML = `
                 <div class="message-text">${text}</div>
@@ -745,25 +787,57 @@
             document.getElementById('active-chat-state').style.display = 'flex';
             document.getElementById('header-name').innerText = `ID: ${id.substring(0, 8)}...`;
             document.getElementById('header-avatar').innerText = id.substring(0,1).toUpperCase();
+            
+            // Highlight active contact
+            document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+            const cItem = document.getElementById(`c-${id}`);
+            if (cItem) cItem.classList.add('active');
+
+            // Load history
+            messagesEl.innerHTML = '';
+            const chats = getChats();
+            if (chats[id]) {
+                chats[id].forEach(msg => {
+                    appendMessage(msg.text, msg.type, msg.time);
+                });
+            }
         }
 
-        function addContact(id) {
-            if(document.getElementById(`c-${id}`)) return;
+        function addContact(id, lastText = 'Bağlantı kuruldu', lastTime = 'Şimdi') {
+            const existing = document.getElementById(`c-${id}`);
+            if(existing) {
+                updateContactPreview(id, lastText, lastTime);
+                return;
+            }
             
             const div = document.createElement('div');
-            div.className = 'contact-item active';
+            div.className = 'contact-item';
             div.id = `c-${id}`;
+            div.onclick = () => {
+                // If not connected, we might need to connect first? 
+                // For now just switchChat if it's in history
+                switchChat(id);
+                if (window.innerWidth <= 768) toggleSidebar(false);
+            };
+            
             div.innerHTML = `
                 <div class="avatar" style="width: 48px; height: 48px;">${id.substring(0,1).toUpperCase()}</div>
                 <div class="contact-content">
                     <div class="contact-top">
                         <span class="contact-name">${id.substring(0,8)}...</span>
-                        <span class="contact-time">Şimdi</span>
+                        <span class="contact-time" id="time-${id}">${lastTime}</span>
                     </div>
-                    <div class="contact-preview">Bağlantı kuruldu</div>
+                    <div class="contact-preview" id="prev-${id}">${lastText}</div>
                 </div>
             `;
             contactList.prepend(div);
+        }
+
+        function updateContactPreview(id, text, time) {
+            const prevEl = document.getElementById(`prev-${id}`);
+            const timeEl = document.getElementById(`time-${id}`);
+            if (prevEl) prevEl.innerText = text;
+            if (timeEl) timeEl.innerText = time;
         }
 
         function copyId() {
