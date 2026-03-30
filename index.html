@@ -295,6 +295,8 @@
             flex-direction: column;
             background: var(--chat-bg);
             position: relative;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .chat-header {
@@ -310,6 +312,7 @@
 
         .chat-messages {
             flex: 1;
+            min-height: 0;
             padding: 40px;
             overflow-y: auto;
             display: flex;
@@ -590,7 +593,7 @@
                 </p>
             </div>
 
-            <div id="active-chat-state" style="display: none; height: 100%; flex-direction: column;">
+            <div id="active-chat-state" style="display: none; flex: 1; flex-direction: column; min-height: 0;">
                 <header class="chat-header">
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <button class="btn" id="mobile-back" style="display: none; background: transparent; padding: 5px; box-shadow: none;" onclick="toggleSidebar(true)">
@@ -612,7 +615,7 @@
                     <div class="message-input-wrapper">
                         <input type="text" id="msg-input" class="message-input" placeholder="Mesajınızı buraya yazın...">
                     </div>
-                    <button class="btn" style="border-radius: 50%; width: 50px; height: 50px; padding: 0;" onclick="send()">
+                    <button class="btn" id="send-btn" style="border-radius: 50%; width: 50px; height: 50px; padding: 0; flex-shrink: 0;" onclick="send()">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                     </button>
                 </footer>
@@ -849,17 +852,32 @@
 
         function send() {
             const text = msgInput.value.trim();
-            if(!text || !activeConn) return;
+
+            if (!text) return; // Empty message, ignore silently
+
+            if (!activeConn) {
+                alert('Henüz kimseyle bağlantı kurulmadı!');
+                return;
+            }
+
+            if (!activeConn.open) {
+                alert('Bağlantı aktif değil. Lütfen sayfayı yenileyin ve tekrar bağlanın.');
+                return;
+            }
 
             const now = new Date();
             const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
 
-            activeConn.send(text);
-            appendMessage(text, 'sent', time);
-            saveMessage(activeConn.peer, text, 'sent', time);
-            
-            msgInput.value = '';
-            msgInput.focus();
+            try {
+                activeConn.send(text);
+                appendMessage(text, 'sent', time);
+                saveMessage(activeConn.peer, text, 'sent', time);
+                msgInput.value = '';
+                msgInput.focus();
+            } catch(e) {
+                console.error('Mesaj gönderilemedi:', e);
+                alert('Mesaj gönderilemedi: ' + e.message);
+            }
         }
 
         function appendMessage(text, type, time) {
@@ -978,7 +996,24 @@
             document.body.removeChild(textArea);
         }
 
-        msgInput.onkeypress = (e) => { if(e.key === 'Enter') send(); };
+        // Enter key support — use keydown for mobile compatibility
+        msgInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+            }
+        });
+
+        // Touch support for send button on mobile
+        document.addEventListener('DOMContentLoaded', () => {
+            const sendBtn = document.getElementById('send-btn');
+            if (sendBtn) {
+                sendBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    send();
+                });
+            }
+        });
 
         init();
     </script>
