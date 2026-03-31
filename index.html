@@ -3,1020 +3,786 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Clone (P2P Online)</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>WhatsApp Clone P2P</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <!-- PeerJS for P2P communication -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root {
-            --bg-color: #0c0d11;
-            --sidebar-bg: rgba(32, 33, 36, 0.7);
+            --bg: #0c0d11;
+            --sidebar-bg: rgba(32,33,36,0.7);
             --chat-bg: #131317;
-            --accent-color: #00a884;
-            --text-primary: #e9edef;
-            --text-secondary: #8696a0;
-            --bubble-sent: #005c4b;
-            --bubble-received: #202c33;
-            --glass-blur: blur(20px);
-            --transition-speed: 0.3s;
+            --accent: #00a884;
+            --text1: #e9edef;
+            --text2: #8696a0;
+            --sent: #005c4b;
+            --recv: #202c33;
         }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,sans-serif;}
+        html,body{height:100%;overflow:hidden;}
+        body{background:var(--bg);background-image:radial-gradient(at 0% 0%,rgba(0,168,132,.15) 0,transparent 50%),radial-gradient(at 100% 100%,rgba(0,168,132,.1) 0,transparent 50%);display:flex;align-items:center;justify-content:center;color:var(--text1);}
+        .app{width:100%;max-width:1400px;height:95vh;display:flex;background:rgba(28,28,35,.4);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:28px;overflow:hidden;box-shadow:0 40px 100px -20px rgba(0,0,0,.7);}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+        /* SIDEBAR */
+        .sidebar{width:380px;background:var(--sidebar-bg);border-right:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;overflow-y:auto;}
+        .sidebar::-webkit-scrollbar{width:4px;}
+        .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px;}
+        .s-header{padding:20px 24px;display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.05);}
+        .avatar{border-radius:50%;background:linear-gradient(135deg,#00a884,#00d2ff);display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff;flex-shrink:0;}
+        .av44{width:44px;height:44px;font-size:1.1rem;}
+        .av42{width:42px;height:42px;font-size:1rem;}
+        .av48{width:48px;height:48px;font-size:1.1rem;}
+        .status-dot{width:9px;height:9px;background:#00ff88;border-radius:50%;box-shadow:0 0 8px #00ff88;display:inline-block;}
 
-        html {
-            height: 100%;
-        }
+        .id-box{margin:16px;padding:18px;background:rgba(255,255,255,.03);border-radius:18px;border:1px solid rgba(255,255,255,.06);}
+        .id-label{font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:600;}
+        .id-row{display:flex;align-items:center;gap:8px;background:#000;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.05);}
+        .id-val{font-family:monospace;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+        .icon-btn{background:transparent;border:none;color:var(--accent);cursor:pointer;padding:4px;transition:transform .2s;display:flex;}
+        .icon-btn:hover{transform:scale(1.1);}
 
-        body {
-            background: var(--bg-color);
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(0, 168, 132, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(0, 168, 132, 0.1) 0px, transparent 50%);
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-primary);
-            overflow: hidden;
-        }
+        /* TABS */
+        .tabs{display:flex;margin:0 16px 12px;background:rgba(255,255,255,.04);border-radius:12px;padding:4px;gap:4px;}
+        .tab{flex:1;padding:8px;border:none;background:transparent;color:var(--text2);border-radius:9px;cursor:pointer;font-size:.85rem;font-weight:500;transition:all .2s;}
+        .tab.active{background:var(--accent);color:#fff;}
 
-        .app-container {
-            width: 100%;
-            max-width: 1400px;
-            height: 95vh;
-            height: 95dvh;
-            display: flex;
-            background: rgba(28, 28, 35, 0.4);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 28px;
-            overflow: hidden;
-            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
-        }
+        /* FORMS */
+        .form-section{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;}
+        .input-f{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:12px 16px;border-radius:12px;color:#fff;outline:none;font-size:.9rem;-webkit-appearance:none;transition:all .3s;}
+        .input-f:focus{border-color:var(--accent);background:rgba(255,255,255,.09);}
+        .btn{background:var(--accent);color:#fff;border:none;padding:12px;border-radius:12px;font-weight:600;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:8px;font-size:.9rem;}
+        .btn:hover{transform:translateY(-1px);filter:brightness(1.1);box-shadow:0 6px 18px rgba(0,168,132,.3);}
+        .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
+        .btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+        .btn-outline:hover{background:rgba(0,168,132,.1);}
+        .btn-sm{padding:8px 14px;font-size:.8rem;border-radius:9px;}
 
-        /* Sidebar Style */
-        .sidebar {
-            width: 380px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            flex-direction: column;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        /* GROUP ROOM BOX */
+        .room-box{margin:0 16px 12px;padding:16px;background:rgba(0,168,132,.06);border:1px solid rgba(0,168,132,.2);border-radius:16px;display:none;}
+        .room-box.visible{display:block;}
+        .room-name{font-size:.95rem;font-weight:600;margin-bottom:6px;color:var(--accent);}
+        .room-members{font-size:.78rem;color:var(--text2);}
 
-        .sidebar-header {
-            padding: 24px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.02);
-        }
+        /* CONTACTS */
+        .contact-list{flex:1;padding:8px 12px;}
+        .contact-item{padding:14px;border-radius:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .2s;margin-bottom:6px;border:1px solid transparent;}
+        .contact-item:hover{background:rgba(255,255,255,.04);}
+        .contact-item.active{background:rgba(0,168,132,.08);border-color:rgba(0,168,132,.15);}
+        .c-content{flex:1;min-width:0;}
+        .c-top{display:flex;justify-content:space-between;margin-bottom:3px;}
+        .c-name{font-weight:600;font-size:.9rem;}
+        .c-time{font-size:.72rem;color:var(--text2);}
+        .c-prev{font-size:.82rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .c-badge{background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;}
+        .section-label{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 4px 6px;font-weight:600;}
 
-        .avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00a884, #00d2ff);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: white;
-            box-shadow: 0 4px 15px rgba(0, 168, 132, 0.25);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-        }
+        /* CHAT */
+        .chat-window{flex:1;display:flex;flex-direction:column;background:var(--chat-bg);min-height:0;overflow:hidden;}
+        .chat-header{padding:16px 28px;background:rgba(19,19,23,.8);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10;}
+        .chat-msgs{flex:1;min-height:0;padding:30px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;background-image:linear-gradient(rgba(19,19,23,.92),rgba(19,19,23,.92)),url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');background-size:400px;}
+        .chat-msgs::-webkit-scrollbar{width:5px;}
+        .chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:5px;}
+        .msg{max-width:70%;padding:10px 16px;border-radius:18px;font-size:.93rem;line-height:1.5;position:relative;animation:pop .35s cubic-bezier(.18,.89,.32,1.28);box-shadow:0 3px 10px rgba(0,0,0,.2);}
+        @keyframes pop{from{opacity:0;transform:scale(.8) translateY(15px);}to{opacity:1;transform:scale(1) translateY(0);}}
+        .msg-sent{align-self:flex-end;background:linear-gradient(135deg,#005c4b,#00705a);color:#fff;border-bottom-right-radius:4px;}
+        .msg-recv{align-self:flex-start;background:var(--recv);color:#d1d7db;border-bottom-left-radius:4px;}
+        .msg-sender{font-size:.72rem;color:var(--accent);font-weight:600;margin-bottom:4px;}
+        .msg-foot{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:4px;font-size:.62rem;opacity:.7;}
+        .msg-system{align-self:center;background:rgba(0,0,0,.4);color:var(--text2);padding:6px 16px;border-radius:20px;font-size:.78rem;border:1px solid rgba(255,255,255,.06);}
+        .chat-input-area{padding:16px 28px;background:rgba(19,19,23,.8);backdrop-filter:blur(12px);border-top:1px solid rgba(255,255,255,.05);display:flex;gap:14px;align-items:center;flex-shrink:0;}
+        .msg-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:12px 20px;border-radius:25px;color:#fff;outline:none;font-size:.93rem;transition:all .3s;-webkit-appearance:none;}
+        .msg-input:focus{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.15);}
+        .send-btn{background:var(--accent);color:#fff;border:none;border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;}
+        .send-btn:hover{transform:scale(1.05);filter:brightness(1.1);}
 
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        /* EMPTY */
+        .empty-chat{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;opacity:.6;text-align:center;padding:40px;}
+        .empty-icon{width:100px;height:100px;background:rgba(0,168,132,.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:24px;color:var(--accent);}
 
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            background: #00ff88;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #00ff88;
-        }
+        /* TOAST */
+        #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:rgba(0,168,132,.92);color:#fff;padding:10px 24px;border-radius:50px;font-weight:500;backdrop-filter:blur(8px);transition:transform .4s cubic-bezier(.18,.89,.32,1.28);z-index:9999;box-shadow:0 8px 24px rgba(0,168,132,.3);white-space:nowrap;}
+        #toast.show{transform:translateX(-50%) translateY(0);}
+        #toast.error{background:rgba(231,76,60,.92);}
 
-        .my-id-container {
-            padding: 24px;
-            background: rgba(255, 255, 255, 0.03);
-            margin: 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            position: relative;
-            overflow: hidden;
-        }
+        /* DISCONNECTED BANNER */
+        .dc-banner{display:none;background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:#e74c3c;padding:8px 16px;font-size:.82rem;text-align:center;border-radius:10px;margin:8px 16px;}
+        .dc-banner.show{display:block;}
 
-        .my-id-container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(0, 168, 132, 0.05), transparent);
-            pointer-events: none;
-        }
+        /* MODAL */
+        .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:500;display:none;align-items:center;justify-content:center;}
+        .modal-overlay.open{display:flex;}
+        .modal{background:#1c1c23;border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:32px;width:min(420px,90vw);animation:pop .3s ease;}
+        .modal h2{font-size:1.3rem;margin-bottom:8px;}
+        .modal p{color:var(--text2);font-size:.87rem;margin-bottom:20px;line-height:1.5;}
+        .modal-actions{display:flex;gap:10px;margin-top:20px;}
+        .room-code-display{background:#000;padding:14px;border-radius:12px;font-family:monospace;font-size:1.1rem;letter-spacing:3px;text-align:center;color:var(--accent);border:1px solid rgba(0,168,132,.3);margin:12px 0;user-select:all;}
 
-        .my-id-label {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .my-id-display {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #000;
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .my-id-value {
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.85rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1;
-        }
-
-        .copy-btn {
-            background: transparent;
-            border: none;
-            color: var(--accent-color);
-            cursor: pointer;
-            padding: 4px;
-            transition: transform 0.2s;
-        }
-
-        .copy-btn:hover { transform: scale(1.1); }
-
-        .connection-form {
-            padding: 0 24px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
-        .input-field {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 14px 20px;
-            border-radius: 14px;
-            color: white;
-            outline: none;
-            transition: all 0.3s;
-            font-size: 0.95rem;
-            -webkit-appearance: none;
-            appearance: none;
-            z-index: 5;
-        }
-
-        .input-field:focus {
-            border-color: var(--accent-color);
-            background: rgba(255, 255, 255, 0.09);
-            box-shadow: 0 0 15px rgba(0, 168, 132, 0.1);
-        }
-
-        .btn {
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            filter: brightness(1.1);
-            box-shadow: 0 8px 20px rgba(0, 168, 132, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .btn:active { transform: translateY(0); }
-
-        .contact-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px 15px;
-        }
-
-        .contact-list::-webkit-scrollbar { width: 5px; }
-        .contact-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-
-        .contact-item {
-            padding: 18px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 8px;
-            border: 1px solid transparent;
-        }
-
-        .contact-item:hover {
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .contact-item.active {
-            background: rgba(0, 168, 132, 0.08);
-            border-color: rgba(0, 168, 132, 0.15);
-        }
-
-        .contact-content {
-            flex: 1;
-        }
-
-        .contact-top {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .contact-name {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .contact-time {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-        }
-
-        .contact-preview {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 180px;
-        }
-
-        /* Chat Window Style */
-        .chat-window {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: var(--chat-bg);
-            position: relative;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        .chat-header {
-            padding: 20px 35px;
-            background: rgba(19, 19, 23, 0.6);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 10;
-        }
-
-        .chat-messages {
-            flex: 1;
-            min-height: 0;
-            padding: 40px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            background-image: 
-                linear-gradient(rgba(19, 19, 23, 0.9), rgba(19, 19, 23, 0.9)),
-                url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-            background-size: 400px;
-            background-attachment: fixed;
-        }
-
-        .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
-
-        .message-bubble {
-            max-width: 70%;
-            padding: 12px 18px;
-            border-radius: 20px;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            position: relative;
-            animation: messagePop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        @keyframes messagePop {
-            from { opacity: 0; transform: scale(0.8) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .message-sent {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #005c4b, #00705a);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-
-        .message-received {
-            align-self: flex-start;
-            background: var(--bubble-received);
-            color: #d1d7db;
-            border-bottom-left-radius: 4px;
-        }
-
-        .message-footer {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: flex-end;
-            margin-top: 6px;
-            font-size: 0.65rem;
-            opacity: 0.7;
-        }
-
-        .chat-input-area {
-            padding: 24px 35px;
-            background: rgba(19, 19, 23, 0.6);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            gap: 18px;
-            align-items: center;
-        }
-
-        .message-input-wrapper {
-            flex: 1;
-            position: relative;
-        }
-
-        .message-input {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 14px 24px;
-            border-radius: 30px;
-            color: white;
-            outline: none;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        .message-input:focus {
-            background: rgba(255, 255, 255, 0.09);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Toast Notification */
-        #toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: rgba(0, 168, 132, 0.9);
-            color: white;
-            padding: 12px 28px;
-            border-radius: 50px;
-            font-weight: 500;
-            backdrop-filter: blur(8px);
-            transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0, 168, 132, 0.3);
-        }
-
-        #toast.show { transform: translateX(-50%) translateY(0); }
-
-        /* Empty State */
-        .empty-chat {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            opacity: 0.6;
-            text-align: center;
-            padding: 60px;
-        }
-
-        .empty-chat-icon {
-            width: 120px;
-            height: 120px;
-            background: rgba(0, 168, 132, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-            color: var(--accent-color);
-        }
-
-        /* Responsive */
-        @media (max-width: 900px) {
-            .sidebar { width: 320px; }
-        }
-
-        @media (max-width: 768px) {
-            body {
-                overflow: hidden;
-                position: fixed;
-                width: 100%;
-                height: 100%;
-            }
-
-            .app-container { 
-                height: 100vh;
-                height: 100svh;
-                border-radius: 0;
-                border: none;
-                box-shadow: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                overflow: hidden;
-            }
-
-            .sidebar { 
-                position: fixed;
-                left: 0; 
-                top: 0; 
-                height: 100vh;
-                height: 100svh;
-                z-index: 200;
-                width: 100%;
-                transform: translateX(-100%);
-                visibility: hidden;
-                transition: transform 0.35s ease, visibility 0.35s;
-                box-shadow: 20px 0 50px rgba(0,0,0,0.5);
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            .sidebar.show { 
-                transform: translateX(0); 
-                visibility: visible;
-            }
-            .connection-form { padding-bottom: 40px; }
-            
-            /* Chat window adjusts for keyboard */
-            .chat-window {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                display: flex;
-                flex-direction: column;
-            }
-
-            .chat-messages {
-                flex: 1;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                padding: 20px;
-            }
-
-            .chat-input-area {
-                padding: 12px 15px;
-                flex-shrink: 0;
-            }
-
-            .message-input {
-                font-size: 16px; /* Prevents auto-zoom on iOS */
-            }
-
-            .input-field {
-                font-size: 16px; /* Prevents auto-zoom on iOS */
-            }
-
-            .message-input-wrapper {
-                z-index: auto;
-            }
+        /* RESPONSIVE */
+        @media(max-width:768px){
+            body{position:fixed;width:100%;height:100%;}
+            .app{height:100vh;height:100svh;border-radius:0;border:none;position:fixed;inset:0;}
+            .sidebar{position:fixed;inset:0;z-index:200;width:100%;transform:translateX(-100%);visibility:hidden;transition:transform .35s ease,visibility .35s;}
+            .sidebar.show{transform:translateX(0);visibility:visible;}
+            .chat-window{position:fixed;inset:0;}
+            .chat-msgs{padding:16px;}
+            .chat-input-area{padding:10px 14px;}
+            .msg-input{font-size:16px;}
+            .input-f{font-size:16px;}
         }
     </style>
 </head>
 <body>
-    <div id="toast">ID Kopyalandı!</div>
+<div id="toast"></div>
 
-    <div class="app-container">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <div class="user-profile">
-                    <div class="avatar">U</div>
-                    <div>
-                        <div style="font-weight: 600; font-size: 0.9rem;">Siz</div>
-                        <div style="font-size: 0.75rem; color: #00ff88; display: flex; align-items: center; gap: 5px;">
-                            <span class="status-dot"></span> Çevrimiçi
-                        </div>
+<!-- GROUP MODAL -->
+<div class="modal-overlay" id="group-modal">
+    <div class="modal">
+        <h2>🏠 Grup Odası</h2>
+        <p>Bir oda oluşturun ve oda kodunu arkadaşlarınızla paylaşın. Herkes aynı koda girerek gruba katılabilir.</p>
+        <div id="modal-body">
+            <input type="text" id="group-name-input" class="input-f" placeholder="Grup adı (örn: Arkadaşlar)" style="margin-bottom:10px;">
+            <div style="display:flex;gap:10px;">
+                <button class="btn" style="flex:1;" onclick="createRoom()">Oda Oluştur</button>
+                <button class="btn btn-outline" style="flex:1;" onclick="showJoinPanel()">Odaya Katıl</button>
+            </div>
+            <div id="join-panel" style="display:none;margin-top:14px;">
+                <input type="text" id="room-code-input" class="input-f" placeholder="Oda kodunu gir..." style="margin-bottom:10px;">
+                <button class="btn" style="width:100%;" onclick="joinRoom()">Katıl</button>
+            </div>
+        </div>
+        <div id="room-created-panel" style="display:none;">
+            <div style="font-size:.82rem;color:var(--text2);margin-bottom:6px;">Oda Kodunu Paylaş:</div>
+            <div class="room-code-display" id="room-code-show"></div>
+            <button class="btn btn-sm" onclick="copyRoomCode()" style="width:100%;margin-bottom:10px;">Kodu Kopyala</button>
+            <div style="font-size:.78rem;color:var(--text2);">Arkadaşlarınız bu kodu girerek odaya katılabilir.</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeModal()">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div class="app">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <div class="s-header">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div class="avatar av44" id="my-avatar">U</div>
+                <div>
+                    <div style="font-weight:600;font-size:.9rem;" id="my-name-display">Siz</div>
+                    <div style="font-size:.72rem;color:#00ff88;display:flex;align-items:center;gap:5px;">
+                        <span class="status-dot"></span> Çevrimiçi
                     </div>
                 </div>
             </div>
-
-            <div class="my-id-container">
-                <div class="my-id-label">Benim Bağlantı Kimliğim</div>
-                <div class="my-id-display">
-                    <div class="my-id-value" id="my-id">Sunucuya bağlanıyor...</div>
-                    <div id="id-actions" style="display: flex; gap: 5px;">
-                        <button class="copy-btn" id="retry-btn" onclick="location.reload()" style="display: none;" title="Yeniden Bağlan">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-                        </button>
-                        <button class="copy-btn" onclick="copyId()" title="Kopyala">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <p style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 12px; line-height: 1.4;">
-                    Arkadaşınızın size bağlanması için bu ID'yi ona gönderin.
-                </p>
-            </div>
-
-            <div class="connection-form">
-                <div class="input-group">
-                    <input type="text" id="target-peer-id" class="input-field" placeholder="Arkadaşının ID'sini gir...">
-                </div>
-                <button class="btn" id="connect-btn" onclick="connect()" disabled>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21 3L3 10.53V11.51L9.81 14.19L18.65 6.43L10.01 15.34L10.15 15.4L18.8 20.67L19.8 19.82L21 3Z"/></svg>
-                    <span>ID Bekleniyor...</span>
+            <div style="display:flex;gap:6px;">
+                <button class="icon-btn" title="Grup Odası" onclick="openModal()" style="padding:8px;background:rgba(0,168,132,.1);border-radius:10px;color:var(--accent);">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                 </button>
-            </div>
-
-            <div class="contact-list" id="contact-list">
-                <!-- Contacts will be populated here -->
             </div>
         </div>
 
-        <!-- Chat Area -->
-        <main class="chat-window">
-            <div id="no-chat-state" class="empty-chat">
-                <div class="empty-chat-icon">
-                    <svg viewBox="0 0 24 24" width="64" height="64" fill="currentColor"><path d="M12,2C6.48,2,2,6.48,2,12c0,2.17,0.7,4.18,1.89,5.83L2.11,21.89c-0.18,0.45-0.02,0.97,0.4,1.25c0.16,0.11,0.35,0.17,0.53,0.17 c0.27,0,0.53-0.11,0.73-0.31l3.52-3.14C8.4,20.58,10.13,21,12,21c5.52,0,10-4.48,10-10S17.52,2,12,2z M12,19c-1.74,0-3.35-0.45-4.75-1.24 c-0.21-0.12-0.46-0.13-0.68-0.03l-2.43,2.16l1.09-2.73c0.11-0.28,0.06-0.59-0.13-0.82C4.38,15.22,4,13.68,4,12c0-4.41,3.59-8,8-8 s8,3.59,8,8S16.41,19,12,19z"/></svg>
-                </div>
-                <h1 style="font-weight: 500; font-size: 1.8rem; margin-bottom: 12px; color: white;">WhatsApp Web P2P</h1>
-                <p style="color: var(--text-secondary); max-width: 350px; line-height: 1.6;">
-                    Uçtan uca şifreli, gerçek zamanlı ve doğrudan bağlantı. Konuşmaya başlamak için birini davet edin.
-                </p>
+        <!-- My ID -->
+        <div class="id-box">
+            <div class="id-label">Benim ID'm</div>
+            <div class="id-row">
+                <div class="id-val" id="my-id">Bağlanıyor...</div>
+                <button class="icon-btn" onclick="copyId()" title="Kopyala">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/></svg>
+                </button>
+                <button class="icon-btn" id="retry-btn" onclick="location.reload()" style="display:none;" title="Yeniden Bağlan">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                </button>
             </div>
+        </div>
 
-            <div id="active-chat-state" style="display: none; flex: 1; flex-direction: column; min-height: 0;">
-                <header class="chat-header">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <button class="btn" id="mobile-back" style="display: none; background: transparent; padding: 5px; box-shadow: none;" onclick="toggleSidebar(true)">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-                        </button>
-                        <div class="avatar" id="header-avatar" style="width: 42px; height: 42px;">?</div>
-                        <div>
-                            <div id="header-name" style="font-weight: 600; font-size: 1rem;">Sohbet</div>
-                            <div id="conn-status" style="font-size: 0.75rem; color: #00ff88;">Bağlanıyor...</div>
-                        </div>
-                    </div>
-                </header>
+        <!-- Disconnected banner -->
+        <div class="dc-banner" id="dc-banner">⚠️ Bağlantı koptu. Mesajlarınız korundu.</div>
 
-                <div class="chat-messages" id="messages">
-                    <!-- Messages will appear here -->
-                </div>
-
-                <footer class="chat-input-area">
-                    <div class="message-input-wrapper">
-                        <input type="text" id="msg-input" class="message-input" placeholder="Mesajınızı buraya yazın...">
-                    </div>
-                    <button class="btn" id="send-btn" style="border-radius: 50%; width: 50px; height: 50px; padding: 0; flex-shrink: 0;" onclick="send()">
-                        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                    </button>
-                </footer>
+        <!-- Active Room Info -->
+        <div class="room-box" id="room-info-box">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--accent)"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <div class="room-name" id="room-name-display">Grup Odası</div>
             </div>
-        </main>
+            <div class="room-members" id="room-members-display">0 üye bağlı</div>
+            <button class="btn btn-outline btn-sm" onclick="copyRoomCodeSidebar()" style="margin-top:10px;width:100%;">Oda Kodunu Paylaş</button>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" id="tab-direct" onclick="switchTab('direct')">💬 Direkt</button>
+            <button class="tab" id="tab-group" onclick="switchTab('group')">👥 Grup</button>
+        </div>
+
+        <!-- Direct chat panel -->
+        <div id="panel-direct">
+            <div class="form-section">
+                <input type="text" id="target-peer-id" class="input-f" placeholder="Arkadaşının ID'sini gir...">
+                <button class="btn" id="connect-btn" onclick="connectDirect()" disabled>
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M21 3L3 10.53V11.51L9.81 14.19L18.65 6.43L10.01 15.34L10.15 15.4L18.8 20.67L19.8 19.82L21 3Z"/></svg>
+                    <span>ID Bekleniyor...</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Group panel -->
+        <div id="panel-group" style="display:none;">
+            <div class="form-section">
+                <div style="font-size:.8rem;color:var(--text2);padding:4px 0 8px;">Bir grup odası oluştur veya mevcut bir odaya katıl.</div>
+                <button class="btn" onclick="openModal()">
+                    <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    Grup Oluştur / Katıl
+                </button>
+            </div>
+        </div>
+
+        <!-- Contact list -->
+        <div class="contact-list" id="contact-list"></div>
     </div>
 
-    <script>
-        let peer;
-        let activeConn = null;
-        const sidebar = document.getElementById('sidebar');
-        const messagesEl = document.getElementById('messages');
-        const msgInput = document.getElementById('msg-input');
-        const myIdValue = document.getElementById('my-id');
-        const contactList = document.getElementById('contact-list');
-        const mobileBack = document.getElementById('mobile-back');
+    <!-- CHAT -->
+    <main class="chat-window">
+        <div id="no-chat" class="empty-chat">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24" width="56" height="56" fill="currentColor"><path d="M12,2C6.48,2,2,6.48,2,12c0,2.17.7,4.18,1.89,5.83L2.11,21.89c-.18.45-.02.97.4,1.25.16.11.35.17.53.17.27,0,.53-.11.73-.31l3.52-3.14C8.4,20.58,10.13,21,12,21c5.52,0,10-4.48,10-10S17.52,2,12,2z"/></svg>
+            </div>
+            <h1 style="font-weight:500;font-size:1.6rem;margin-bottom:10px;">WhatsApp Web P2P</h1>
+            <p style="color:var(--text2);max-width:300px;line-height:1.6;font-size:.9rem;">Biri ile sohbet başlatmak veya grup odası oluşturmak için sol paneli kullanın.</p>
+        </div>
 
-        // Initialize Peer
-        function init() {
-            // Check for saved ID in localStorage
-            const savedId = localStorage.getItem('whatsapp-p2p-id');
-            
-            // If we have a saved ID, use it. Otherwise, let PeerJS generate one.
-            peer = savedId ? new Peer(savedId) : new Peer();
-
-            peer.on('open', (id) => {
-                console.log('My peer ID is: ' + id);
-                // Save the ID if it's new
-                if (!savedId) {
-                    localStorage.setItem('whatsapp-p2p-id', id);
-                }
-                myIdValue.innerText = id;
-                
-                // Enable connect button
-                const connBtn = document.getElementById('connect-btn');
-                connBtn.disabled = false;
-                connBtn.querySelector('span').innerText = 'Bağlantı Kur';
-            });
-
-            peer.on('connection', (conn) => {
-                handleConnection(conn);
-            });
-
-            peer.on('error', (err) => {
-                console.error('Peer Error:', err);
-                const retryBtn = document.getElementById('retry-btn');
-                if (retryBtn) retryBtn.style.display = 'inline-flex';
-
-                if(err.type === 'peer-not-found') {
-                    alert('Hata: Böyle bir ID bulunamadı. Arkadaşınızın ID\'sini doğru girdiğinizden emin olun.');
-                    resetButton();
-                } else if(err.type === 'unavailable-id') {
-                    console.log('ID unavailable, generating new one...');
-                    localStorage.removeItem('whatsapp-p2p-id');
-                    setTimeout(() => location.reload(), 500);
-                } else if(err.type === 'network') {
-                    alert('Ağ hatası! Sunucuya bağlanılamıyor. İnternetinizi kontrol edin veya biraz bekleyip sağdaki yenile butonuyla tekrar deneyin.');
-                    myIdValue.innerText = "Kimlik alınamadı.";
-                    resetButton();
-                } else if(err.type === 'browser-incompatible') {
-                    alert('Tarayıcınız WebRTC teknolojisini desteklemiyor. Lütfen Chrome, Edge veya Firefox güncel sürümünü kullanın.');
-                } else {
-                    alert('Beklenmedik bir hata oluştu: ' + err.type + '. Lütfen internetinizi kontrol edin.');
-                    resetButton();
-                }
-            });
-
-            peer.on('disconnected', () => {
-                console.log('Sunucu bağlantısı koptu. Yeniden bağlanmaya çalışılıyor...');
-                myIdValue.innerText = "Bağlantı koptu, bekleniyor...";
-                peer.reconnect();
-            });
-
-            // Handle mobile initial state
-            if (window.innerWidth <= 768) {
-                toggleSidebar(true);
-                mobileBack.style.display = 'block';
-            }
-
-            // Load persistent contacts
-            loadPreviousContacts();
-
-            // Protocol check
-            if (location.protocol === 'http:' && location.hostname !== 'localhost') {
-                alert('UYARI: WebRTC teknolojisi HTTPS üzerinde daha stabil çalışır. Eğer bağlantı sorunu yaşıyorsanız SSL sertifikalı (HTTPS) bir adres kullandığınızdan emin olun.');
-            }
-        }
-
-        // Storage helpers
-        function getChats() {
-            const chats = localStorage.getItem('whatsapp_p2p_chats');
-            return chats ? JSON.parse(chats) : {};
-        }
-
-        function saveChats(chats) {
-            localStorage.setItem('whatsapp_p2p_chats', JSON.stringify(chats));
-        }
-
-        function saveMessage(peerId, text, type, time) {
-            const chats = getChats();
-            if (!chats[peerId]) chats[peerId] = [];
-            chats[peerId].push({ text, type, time });
-            saveChats(chats);
-            updateContactPreview(peerId, text, time);
-        }
-
-        function loadPreviousContacts() {
-            const chats = getChats();
-            const sortedIds = Object.keys(chats).sort((a, b) => {
-                const logsA = chats[a];
-                const logsB = chats[b];
-                return 0; // Simple sort for now
-            });
-
-            sortedIds.forEach(id => {
-                const history = chats[id];
-                const lastMsg = history[history.length - 1];
-                addContact(id, lastMsg.text, lastMsg.time);
-            });
-        }
-
-        function handleConnection(conn) {
-            setupConnection(conn);
-            addContact(conn.peer);
-        }
-
-        function setupConnection(conn) {
-            activeConn = conn;
-            
-            const onOpen = () => {
-                console.log('Bağlantı başarıyla açıldı! Peer:', conn.peer);
-                resetButton();
-                switchChat(conn.peer);
-                if (window.innerWidth <= 768) toggleSidebar(false);
-
-                // Update status indicator
-                const statusEl = document.getElementById('conn-status');
-                if (statusEl) {
-                    statusEl.style.color = '#00ff88';
-                    statusEl.innerText = 'Bağlı ✔';
-                }
-                
-                // Success toast
-                const toast = document.getElementById('toast');
-                toast.innerText = 'Bağlantı Kuruldu! Sohbet Başlıyor...';
-                toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 3000);
-            };
-
-            // PeerJS connections might be open already on the receiving side
-            if (conn.open) {
-                onOpen();
-            } else {
-                conn.on('open', onOpen);
-            }
-
-            conn.on('data', (data) => {
-                const now = new Date();
-                const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-                
-                appendMessage(data, 'received', time);
-                saveMessage(conn.peer, data, 'received', time);
-            });
-
-            conn.on('error', (err) => {
-                alert('Bağlantı Hatası: ' + err);
-                console.error('Conn error:', err);
-                resetButton();
-            });
-
-            conn.on('close', () => {
-                console.log('Bağlantı kapandı.');
-                // Don't reload immediately on mobile to allow user to see what happened
-                const toast = document.getElementById('toast');
-                toast.innerText = 'Bağlantı Koptu.';
-                toast.style.background = '#e74c3c';
-                toast.classList.add('show');
-                setTimeout(() => location.reload(), 3000);
-            });
-        }
-
-        function toggleSidebar(show) {
-            if (show) {
-                sidebar.classList.add('show');
-            } else {
-                sidebar.classList.remove('show');
-            }
-        }
-
-        function connect() {
-            const destId = document.getElementById('target-peer-id').value.trim();
-            if(!destId) {
-                alert('Lütfen bir ID girin.');
-                return;
-            }
-            
-            if (!peer || !peer.open) {
-                alert('Sistem henüz hazır değil, lütfen bekleyin...');
-                return;
-            }
-
-            const myId = myIdValue.innerText;
-            if (destId === myId) {
-                alert('Kendi ID\'nize bağlanamazsınız!');
-                return;
-            }
-
-            // Show loading state
-            const btn = document.getElementById('connect-btn');
-            const span = btn.querySelector('span');
-            span.innerText = 'Bağlanıyor...';
-            btn.disabled = true;
-
-            try {
-                console.log('Connecting to:', destId);
-                const conn = peer.connect(destId);
-                setupConnection(conn);
-                addContact(destId);
-
-                // Timeout for connection
-                setTimeout(() => {
-                    if (activeConn && !activeConn.open) {
-                        alert('Bağlantı zaman aşımına uğradı. Arkadaşınızın ID\'si yanlış olabilir veya arkadaşınız çevrimdışı olabilir.');
-                        resetButton();
-                    }
-                }, 12000);
-            } catch (err) {
-                console.error('Connect Error:', err);
-                alert('Bağlantı başlatılamadı: ' + err.message);
-                resetButton();
-            }
-        }
-
-        function resetButton() {
-            const btn = document.getElementById('connect-btn');
-            if (btn) {
-                btn.disabled = false;
-                btn.querySelector('span').innerText = 'Bağlantı Kur';
-            }
-        }
-
-        function send() {
-            const text = msgInput.value.trim();
-            if (!text) return;
-
-            if (!activeConn) {
-                alert('Henüz bağlantı kurulmadı!');
-                return;
-            }
-
-            const now = new Date();
-            const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-            try {
-                activeConn.send(text);
-                appendMessage(text, 'sent', time);
-                saveMessage(activeConn.peer, text, 'sent', time);
-                msgInput.value = '';
-                msgInput.focus();
-            } catch(e) {
-                console.error('Mesaj gönderilemedi:', e);
-                alert('Mesaj gönderilemedi. Bağlantı durumu: ' + (activeConn ? 'var (open=' + activeConn.open + ')' : 'yok') + '. Hata: ' + e.message);
-            }
-        }
-
-        function appendMessage(text, type, time) {
-            const div = document.createElement('div');
-            div.className = `message-bubble message-${type}`;
-            
-            div.innerHTML = `
-                <div class="message-text">${text}</div>
-                <div class="message-footer">
-                    <span>${time}</span>
-                    ${type === 'sent' ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="#53bdeb"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' : ''}
-                </div>
-            `;
-            
-            messagesEl.appendChild(div);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
-
-        function switchChat(id) {
-            document.getElementById('no-chat-state').style.display = 'none';
-            document.getElementById('active-chat-state').style.display = 'flex';
-            document.getElementById('header-name').innerText = `ID: ${id.substring(0, 8)}...`;
-            document.getElementById('header-avatar').innerText = id.substring(0,1).toUpperCase();
-            
-            // Highlight active contact
-            document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
-            const cItem = document.getElementById(`c-${id}`);
-            if (cItem) cItem.classList.add('active');
-
-            // Load history
-            messagesEl.innerHTML = '';
-            const chats = getChats();
-            if (chats[id]) {
-                chats[id].forEach(msg => {
-                    appendMessage(msg.text, msg.type, msg.time);
-                });
-            }
-        }
-
-        function addContact(id, lastText = 'Bağlantı kuruldu', lastTime = 'Şimdi') {
-            const existing = document.getElementById(`c-${id}`);
-            if(existing) {
-                updateContactPreview(id, lastText, lastTime);
-                return;
-            }
-            
-            const div = document.createElement('div');
-            div.className = 'contact-item';
-            div.id = `c-${id}`;
-            div.onclick = () => {
-                // If not connected, we might need to connect first? 
-                // For now just switchChat if it's in history
-                switchChat(id);
-                if (window.innerWidth <= 768) toggleSidebar(false);
-            };
-            
-            div.innerHTML = `
-                <div class="avatar" style="width: 48px; height: 48px;">${id.substring(0,1).toUpperCase()}</div>
-                <div class="contact-content">
-                    <div class="contact-top">
-                        <span class="contact-name">${id.substring(0,8)}...</span>
-                        <span class="contact-time" id="time-${id}">${lastTime}</span>
+        <div id="active-chat" style="display:none;flex:1;flex-direction:column;min-height:0;">
+            <header class="chat-header">
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <button id="mobile-back" style="display:none;background:transparent;border:none;color:var(--text1);cursor:pointer;padding:4px;" onclick="toggleSidebar(true)">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                    </button>
+                    <div class="avatar av42" id="h-avatar">?</div>
+                    <div>
+                        <div id="h-name" style="font-weight:600;font-size:.98rem;">Sohbet</div>
+                        <div id="h-status" style="font-size:.73rem;color:#00ff88;">Bağlı</div>
                     </div>
-                    <div class="contact-preview" id="prev-${id}">${lastText}</div>
                 </div>
-            `;
-            contactList.prepend(div);
-        }
+                <div id="h-members" style="display:none;font-size:.78rem;color:var(--text2);"></div>
+            </header>
 
-        function updateContactPreview(id, text, time) {
-            const prevEl = document.getElementById(`prev-${id}`);
-            const timeEl = document.getElementById(`time-${id}`);
-            if (prevEl) prevEl.innerText = text;
-            if (timeEl) timeEl.innerText = time;
-        }
+            <div class="chat-msgs" id="messages"></div>
 
-        function copyId() {
-            const id = myIdValue.innerText;
-            if (id === 'Oluşturuluyor...') return;
+            <footer class="chat-input-area">
+                <input type="text" id="msg-input" class="msg-input" placeholder="Mesaj yaz...">
+                <button class="send-btn" onclick="send()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </footer>
+        </div>
+    </main>
+</div>
 
-            const toast = document.getElementById('toast');
-            
-            const doToast = (msg) => {
-                toast.innerText = msg;
-                toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 2500);
-            };
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let peer;
+let myId = '';
+let activeConn = null;       // for direct chat
+let currentChatId = null;    // peer id or 'group'
+let currentTab = 'direct';
 
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(id).then(() => {
-                    doToast('ID Kopyalandı!');
-                }).catch(err => {
-                    fallbackCopyId(id, doToast);
-                });
+// Group
+let isGroupHost = false;
+let groupConnections = {};   // peerId -> conn (host keeps all)
+let groupHostId = null;      // the host's peer id (room code)
+let groupName = 'Grup Odası';
+let hostConn = null;         // member's connection to host
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const sidebar   = document.getElementById('sidebar');
+const messagesEl= document.getElementById('messages');
+const msgInput  = document.getElementById('msg-input');
+const myIdEl    = document.getElementById('my-id');
+const contactList=document.getElementById('contact-list');
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+    const savedId = localStorage.getItem('wa-p2p-id');
+    peer = savedId ? new Peer(savedId) : new Peer();
+
+    peer.on('open', id => {
+        myId = id;
+        if (!savedId) localStorage.setItem('wa-p2p-id', id);
+        myIdEl.innerText = id;
+        const btn = document.getElementById('connect-btn');
+        btn.disabled = false;
+        btn.querySelector('span').innerText = 'Bağlantı Kur';
+        loadPrevContacts();
+    });
+
+    peer.on('connection', conn => {
+        // Determine if this is a group member connecting to us (we are host)
+        // or a direct chat
+        conn.on('open', () => {
+            const meta = conn.metadata || {};
+            if (meta.type === 'group') {
+                handleGroupMemberConnection(conn);
+            } else if (meta.type === 'group-join') {
+                handleGroupJoinRequest(conn);
             } else {
-                fallbackCopyId(id, doToast);
-            }
-        }
-
-        function fallbackCopyId(text, callback) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            textArea.style.top = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                callback('ID Kopyalandı!');
-            } catch (err) {
-                console.error('Fallback copy failed', err);
-                callback('Kopyalama Başarısız!');
-            }
-            document.body.removeChild(textArea);
-        }
-
-        // Enter key support — use keydown for mobile compatibility
-        msgInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
+                handleDirectConnection(conn);
             }
         });
+    });
 
-        // Touch support for send button on mobile
-        document.addEventListener('DOMContentLoaded', () => {
-            const sendBtn = document.getElementById('send-btn');
-            if (sendBtn) {
-                sendBtn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    send();
-                });
+    peer.on('error', err => {
+        console.error('Peer error:', err);
+        document.getElementById('retry-btn').style.display = 'inline-flex';
+        if (err.type === 'peer-not-found') {
+            showToast('ID bulunamadı!', true);
+            resetConnBtn();
+        } else if (err.type === 'unavailable-id') {
+            localStorage.removeItem('wa-p2p-id');
+            setTimeout(() => location.reload(), 500);
+        } else if (err.type === 'network') {
+            myIdEl.innerText = 'Ağ hatası';
+            showToast('Ağ hatası! İnternetinizi kontrol edin.', true);
+            resetConnBtn();
+        } else {
+            showToast('Hata: ' + err.type, true);
+            resetConnBtn();
+        }
+    });
+
+    peer.on('disconnected', () => {
+        console.log('Peer sunucudan koptu, yeniden bağlanıyor...');
+        // Don't reload – just reconnect silently
+        try { peer.reconnect(); } catch(e) {}
+    });
+
+    if (window.innerWidth <= 768) {
+        toggleSidebar(true);
+        document.getElementById('mobile-back').style.display = 'block';
+    }
+}
+
+// ─── DIRECT CHAT ──────────────────────────────────────────────────────────────
+function connectDirect() {
+    const destId = document.getElementById('target-peer-id').value.trim();
+    if (!destId) { showToast('Lütfen bir ID girin.', true); return; }
+    if (!peer || !peer.open) { showToast('Sistem hazır değil, bekleyin.', true); return; }
+    if (destId === myId) { showToast('Kendi ID\'nize bağlanamazsınız!', true); return; }
+
+    const btn = document.getElementById('connect-btn');
+    btn.disabled = true;
+    btn.querySelector('span').innerText = 'Bağlanıyor...';
+
+    const conn = peer.connect(destId, { metadata: { type: 'direct' } });
+    setupDirectConn(conn);
+
+    setTimeout(() => {
+        if (!conn.open) { showToast('Bağlantı zaman aşımına uğradı.', true); resetConnBtn(); }
+    }, 12000);
+}
+
+function handleDirectConnection(conn) {
+    setupDirectConn(conn);
+    addContact(conn.peer, '📨 Bağlantı isteği geldi', now());
+}
+
+function setupDirectConn(conn) {
+    activeConn = conn;
+
+    const onOpen = () => {
+        resetConnBtn();
+        switchChat(conn.peer, false);
+        if (window.innerWidth <= 768) toggleSidebar(false);
+        showToast('Bağlantı Kuruldu! ✔');
+        updateHeaderStatus('Bağlı ✔', '#00ff88');
+        addContact(conn.peer, 'Bağlantı kuruldu', now());
+    };
+
+    if (conn.open) onOpen(); else conn.on('open', onOpen);
+
+    conn.on('data', data => {
+        const t = now();
+        if (currentChatId === conn.peer) {
+            appendMsg(data, 'recv', t);
+        }
+        saveMsg(conn.peer, data, 'recv', t, '');
+        updateContact(conn.peer, data, t);
+    });
+
+    conn.on('close', () => {
+        activeConn = null;
+        showDcBanner(true);
+        updateHeaderStatus('Bağlantı Koptu ⚠', '#e74c3c');
+        showToast('Bağlantı koptu. Mesajlarınız korundu.', true);
+        // NO reload — messages are safe
+    });
+
+    conn.on('error', err => {
+        showToast('Bağlantı hatası: ' + err, true);
+    });
+}
+
+// ─── GROUP CHAT ───────────────────────────────────────────────────────────────
+function createRoom() {
+    const name = document.getElementById('group-name-input').value.trim() || 'Grup Odası';
+    groupName = name;
+    isGroupHost = true;
+    groupHostId = myId; // room code = host's peer ID
+
+    document.getElementById('room-code-show').innerText = myId;
+    document.getElementById('modal-body').style.display = 'none';
+    document.getElementById('room-created-panel').style.display = 'block';
+
+    updateRoomInfoBox();
+    switchChat('group', true);
+    showToast('Oda oluşturuldu! Kodu paylaşın.');
+    appendSystemMsg('Grup odası oluşturuldu. Üyelerin katılmasını bekleyin.');
+}
+
+function showJoinPanel() {
+    document.getElementById('join-panel').style.display = 'block';
+}
+
+function joinRoom() {
+    const code = document.getElementById('room-code-input').value.trim();
+    if (!code) { showToast('Lütfen oda kodunu girin.', true); return; }
+    if (code === myId) { showToast('Kendi odanıza bağlanamazsınız!', true); return; }
+
+    groupHostId = code;
+    isGroupHost = false;
+
+    // Connect to host with special metadata
+    const conn = peer.connect(code, { metadata: { type: 'group-join', name: myId.substring(0,6) } });
+    hostConn = conn;
+
+    const onOpen = () => {
+        closeModal();
+        updateRoomInfoBox();
+        switchChat('group', true);
+        showToast('Gruba katıldınız! ✔');
+        appendSystemMsg('Gruba başarıyla katıldınız.');
+    };
+
+    if (conn.open) onOpen(); else conn.on('open', onOpen);
+
+    conn.on('data', data => {
+        const t = now();
+        if (data.type === 'group-msg') {
+            if (currentChatId === 'group') {
+                appendMsg(data.text, 'recv', t, data.sender || '?');
             }
-        });
+            saveMsg('group', data.text, 'recv', t, data.sender);
+            updateContact('group', data.text, t);
+        } else if (data.type === 'group-members') {
+            updateMemberCount(data.count);
+        }
+    });
 
-        init();
-    </script>
+    conn.on('close', () => {
+        showDcBanner(true);
+        updateHeaderStatus('Host bağlantısı koptu ⚠', '#e74c3c');
+        showToast('Host bağlantısı koptu. Mesajlar korundu.', true);
+    });
+
+    setTimeout(() => {
+        if (!conn.open) { showToast('Oda bulunamadı. Kod yanlış olabilir.', true); }
+    }, 10000);
+}
+
+function handleGroupJoinRequest(conn) {
+    // We are the host
+    if (!isGroupHost) { conn.close(); return; }
+    groupConnections[conn.peer] = conn;
+    updateRoomInfoBox();
+
+    const memberCount = Object.keys(groupConnections).length;
+    appendSystemMsg(conn.peer.substring(0,8) + '... gruba katıldı. (' + memberCount + ' üye)');
+    updateContact('group', conn.peer.substring(0,6) + ' katıldı', now());
+
+    // Broadcast updated member count
+    broadcastToGroup({ type: 'group-members', count: memberCount + 1 }); // +1 for host
+
+    conn.on('data', data => {
+        if (data.type === 'group-msg') {
+            const t = now();
+            // Show in host's UI
+            if (currentChatId === 'group') {
+                appendMsg(data.text, 'recv', t, data.sender);
+            }
+            saveMsg('group', data.text, 'recv', t, data.sender);
+            updateContact('group', data.text, t);
+            // Broadcast to all other members
+            broadcastToGroup(data, conn.peer);
+        }
+    });
+
+    conn.on('close', () => {
+        delete groupConnections[conn.peer];
+        const cnt = Object.keys(groupConnections).length;
+        appendSystemMsg(conn.peer.substring(0,8) + '... ayrıldı.');
+        updateRoomInfoBox();
+        broadcastToGroup({ type: 'group-members', count: cnt + 1 });
+    });
+}
+
+function handleGroupMemberConnection(conn) {
+    // fallback for older metadata
+    handleGroupJoinRequest(conn);
+}
+
+function broadcastToGroup(data, excludePeer = null) {
+    Object.entries(groupConnections).forEach(([pid, conn]) => {
+        if (pid !== excludePeer && conn.open) {
+            conn.send(data);
+        }
+    });
+}
+
+function updateMemberCount(count) {
+    document.getElementById('room-members-display').innerText = count + ' üye bağlı';
+    const hm = document.getElementById('h-members');
+    hm.style.display = 'block';
+    hm.innerText = count + ' üye';
+}
+
+function updateRoomInfoBox() {
+    const box = document.getElementById('room-info-box');
+    box.classList.add('visible');
+    document.getElementById('room-name-display').innerText = groupName;
+    const cnt = isGroupHost ? Object.keys(groupConnections).length + 1 : '?';
+    document.getElementById('room-members-display').innerText = cnt + ' üye bağlı';
+    addContact('group', 'Grup odası', now(), '👥');
+}
+
+// ─── SEND ─────────────────────────────────────────────────────────────────────
+function send() {
+    const text = msgInput.value.trim();
+    if (!text) return;
+    const t = now();
+
+    if (currentChatId === 'group') {
+        const data = { type: 'group-msg', text, sender: myId.substring(0,6) };
+        if (isGroupHost) {
+            broadcastToGroup(data);
+        } else if (hostConn && hostConn.open) {
+            hostConn.send(data);
+        } else {
+            showToast('Grup bağlantısı yok!', true); return;
+        }
+        appendMsg(text, 'sent', t);
+        saveMsg('group', text, 'sent', t, 'Ben');
+        updateContact('group', text, t);
+    } else {
+        if (!activeConn || !activeConn.open) {
+            showToast('Bağlantı yok! Arkadaşınız çevrimdışı olabilir.', true); return;
+        }
+        activeConn.send(text);
+        appendMsg(text, 'sent', t);
+        saveMsg(currentChatId, text, 'sent', t, '');
+        updateContact(currentChatId, text, t);
+    }
+
+    msgInput.value = '';
+    msgInput.focus();
+}
+
+// ─── UI ───────────────────────────────────────────────────────────────────────
+function switchChat(id, isGroup) {
+    currentChatId = id;
+    document.getElementById('no-chat').style.display = 'none';
+    const ac = document.getElementById('active-chat');
+    ac.style.display = 'flex';
+
+    const hm = document.getElementById('h-members');
+    if (isGroup) {
+        document.getElementById('h-name').innerText = groupName;
+        document.getElementById('h-avatar').innerText = '👥';
+        document.getElementById('h-status').innerText = isGroupHost ? 'Oda Sahibi' : 'Üye';
+        hm.style.display = 'block';
+    } else {
+        document.getElementById('h-name').innerText = 'ID: ' + id.substring(0,8) + '...';
+        document.getElementById('h-avatar').innerText = id.substring(0,1).toUpperCase();
+        document.getElementById('h-status').innerText = 'Bağlı ✔';
+        hm.style.display = 'none';
+    }
+
+    document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('active'));
+    const ci = document.getElementById('c-' + id);
+    if (ci) ci.classList.add('active');
+
+    // Load history
+    messagesEl.innerHTML = '';
+    const chats = getChats();
+    if (chats[id]) {
+        chats[id].forEach(m => appendMsg(m.text, m.type, m.time, m.sender));
+    }
+}
+
+function appendMsg(text, type, time, sender) {
+    const div = document.createElement('div');
+    const isGroup = currentChatId === 'group';
+    div.className = 'msg msg-' + type;
+    let senderHtml = '';
+    if (type === 'recv' && isGroup && sender) {
+        senderHtml = `<div class="msg-sender">${escHtml(sender)}</div>`;
+    }
+    div.innerHTML = `${senderHtml}<div>${escHtml(text)}</div><div class="msg-foot"><span>${time}</span>${type==='sent'?'<svg width="14" height="14" viewBox="0 0 24 24" fill="#53bdeb"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>':''}</div>`;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function appendSystemMsg(text) {
+    const div = document.createElement('div');
+    div.className = 'msg msg-system';
+    div.innerText = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addContact(id, lastText='Bağlantı kuruldu', lastTime='Şimdi', emoji='') {
+    let existing = document.getElementById('c-' + id);
+    if (existing) { updateContact(id, lastText, lastTime); return; }
+
+    const div = document.createElement('div');
+    div.className = 'contact-item';
+    div.id = 'c-' + id;
+    const isGroup = id === 'group';
+    const label = isGroup ? (emoji || '👥') + ' ' + groupName : (emoji || id.substring(0,1).toUpperCase());
+    const dispName = isGroup ? groupName : ('ID: ' + id.substring(0,8) + '...');
+
+    div.innerHTML = `
+        <div class="avatar av48" style="${isGroup?'font-size:1.4rem;background:linear-gradient(135deg,#7c3aed,#a855f7);':''}">${label}</div>
+        <div class="c-content">
+            <div class="c-top">
+                <span class="c-name">${dispName}</span>
+                <span class="c-time" id="ct-${id}">${lastTime}</span>
+            </div>
+            <div class="c-prev" id="cp-${id}">${escHtml(lastText)}</div>
+        </div>`;
+
+    div.onclick = () => {
+        switchChat(id, isGroup);
+        if (window.innerWidth <= 768) toggleSidebar(false);
+    };
+
+    contactList.prepend(div);
+}
+
+function updateContact(id, text, time) {
+    const p = document.getElementById('cp-' + id);
+    const t = document.getElementById('ct-' + id);
+    if (p) p.innerText = text;
+    if (t) t.innerText = time;
+}
+
+function updateHeaderStatus(text, color) {
+    const el = document.getElementById('h-status');
+    if (el) { el.innerText = text; el.style.color = color; }
+}
+
+function showDcBanner(show) {
+    const el = document.getElementById('dc-banner');
+    el.classList.toggle('show', show);
+}
+
+function toggleSidebar(show) {
+    sidebar.classList.toggle('show', show);
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tab-direct').classList.toggle('active', tab==='direct');
+    document.getElementById('tab-group').classList.toggle('active', tab==='group');
+    document.getElementById('panel-direct').style.display = tab==='direct'?'':'none';
+    document.getElementById('panel-group').style.display = tab==='group'?'':'none';
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function openModal() {
+    document.getElementById('group-modal').classList.add('open');
+    document.getElementById('modal-body').style.display = 'block';
+    document.getElementById('room-created-panel').style.display = 'none';
+    document.getElementById('join-panel').style.display = 'none';
+}
+function closeModal() { document.getElementById('group-modal').classList.remove('open'); }
+
+function copyRoomCode() {
+    const code = document.getElementById('room-code-show').innerText;
+    copyText(code, 'Oda Kodu Kopyalandı!');
+}
+function copyRoomCodeSidebar() {
+    copyText(groupHostId || myId, 'Oda Kodu Kopyalandı!');
+}
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+function getChats() {
+    try { return JSON.parse(localStorage.getItem('wa-chats') || '{}'); } catch(e) { return {}; }
+}
+function saveChats(c) { localStorage.setItem('wa-chats', JSON.stringify(c)); }
+function saveMsg(id, text, type, time, sender) {
+    const c = getChats();
+    if (!c[id]) c[id] = [];
+    c[id].push({ text, type, time, sender: sender||'' });
+    if (c[id].length > 500) c[id] = c[id].slice(-500);
+    saveChats(c);
+}
+function loadPrevContacts() {
+    const chats = getChats();
+    Object.keys(chats).forEach(id => {
+        const msgs = chats[id];
+        const last = msgs[msgs.length-1];
+        if (id === 'group') {
+            addContact('group', last.text, last.time, '👥');
+        } else {
+            addContact(id, last.text, last.time);
+        }
+    });
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function now() {
+    const d = new Date();
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showToast(msg, isError=false) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.className = isError ? 'error show' : 'show';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+function copyId() { copyText(myId, 'ID Kopyalandı!'); }
+function copyText(text, msg) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => showToast(msg)).catch(() => fallbackCopy(text, msg));
+    } else fallbackCopy(text, msg);
+}
+function fallbackCopy(text, msg) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showToast(msg); } catch(e) { showToast('Kopyalama başarısız', true); }
+    document.body.removeChild(ta);
+}
+function resetConnBtn() {
+    const btn = document.getElementById('connect-btn');
+    if (btn) { btn.disabled = false; btn.querySelector('span').innerText = 'Bağlantı Kur'; }
+}
+
+// ─── EVENTS ───────────────────────────────────────────────────────────────────
+msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+document.getElementById('send-btn')?.addEventListener('touchend', e => {
+    e.preventDefault(); send();
+});
+document.getElementById('group-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('group-modal')) closeModal();
+});
+
+// ─── START ────────────────────────────────────────────────────────────────────
+init();
+</script>
 </body>
 </html>
