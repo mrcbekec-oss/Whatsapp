@@ -302,7 +302,7 @@ const contactList=document.getElementById('contact-list');
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
     const savedId = localStorage.getItem('wa-p2p-id');
-    peer = savedId ? new Peer(savedId) : new Peer();
+    peer = savedId ? new Peer(savedId) : new Peer(Math.random().toString(36).substring(2, 8));
 
     peer.on('open', id => {
         myId = id;
